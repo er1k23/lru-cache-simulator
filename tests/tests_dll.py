@@ -1,6 +1,4 @@
-from doubly_linked_list import Node, DoublyLinkedList
-
-
+from lru_cache.doubly_linked_list import Node, DoublyLinkedList
 def print_list(dll):
     current = dll.head.next
     result = []
