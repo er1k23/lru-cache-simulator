@@ -17,7 +17,7 @@ This project implements an LRU cache **from scratch** in Python and simulates it
 - ✅ Edge cases covered:
   - capacity = 1
   - all gets on empty cache
-  - repeated puts with same key (update + move to MRU)
+  - repeated puts with the same key (update + move to MRU)
 - ✅ Correctness verification via tests + manual trace
 
 ## Data Structures
@@ -30,11 +30,59 @@ This project implements an LRU cache **from scratch** in Python and simulates it
 On every `get` / `put`, the key becomes **MRU** (moved to head).  
 On overflow, the cache evicts **LRU** (tail node).
 
-## Complexity
+## Complexity (Summary)
 
 - `get(key)` → **O(1)** average
-- `put(key, value)` → **O(1)** average
+- `put(key, value)` → **O(1)** average  
+- Space → **O(capacity)**
 
-Each operation does a constant number of pointer updates in the DLL and constant-time average lookup/update in the custom HashMap.
+Full explanation: see `docs/complexity.md`.
 
 ## Project Structure
+
+```text
+src/lru_cache/
+  __init__.py
+  doubly_linked_list.py
+  hashmap.py
+  lru_cache.py
+  simulator.py
+
+tests/
+  test_lru_cache.py
+  test_simulator.py
+
+data/
+  sample_workload.txt
+
+docs/
+  manual_trace.md
+  complexity.md 
+```
+
+## Setup
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install pytest
+```
+
+## Run tests
+
+```bash
+PYTHONPATH=src pytest -q
+```
+
+## Run simulator
+
+```bash
+PYTHONPATH=src python -m lru_cache.simulator --capacity 3 --workload data/sample_workload.txt
+```
+
+## Required write-ups
+
+- Manual trace (by hand): `docs/manual_trace.md`
+- Complexity analysis: `docs/complexity.md`
+```
