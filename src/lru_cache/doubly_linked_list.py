@@ -40,3 +40,9 @@ class DoublyLinkedList:
 
         self.remove(node)
         return node
+
+    def get_lru(self):
+        node = self.tail.prev
+        if node == self.head:
+            return None
+        return node
