@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LRU Cache Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a28;
+    --border: #2a2a40;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --accent3: #43e97b;
+    --accent4: #f7971e;
+    --text: #e8e8f0;
+    --text-dim: #6b6b8a;
+    --mru: #6c63ff;
+    --lru: #ff6584;
+    --hit: #43e97b;
+    --miss: #ff6584;
+    --evict: #f7971e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    padding: 32px 40px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    width: 44px; height: 44px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .header-text h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .header-text p {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .stats-bar {
+    margin-left: auto;
+    display: flex;
+    gap: 24px;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+  }
+
+  .stat-val.hit { color: var(--hit); }
+  .stat-val.miss { color: var(--miss); }
+  .stat-val.rate { color: var(--accent); }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* MAIN GRID */
+  .main {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    grid-template-rows: auto 1fr;
+    min-height: calc(100vh - 81px);
+  }
+
+  /* LEFT PANEL */
+  .left-panel {
+    grid-row: 1 / 3;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .panel-section {
+    padding: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* CAPACITY */
+  .capacity-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .capacity-control label {
+    font-size: 12px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  .cap-input {
+    width: 70px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 8px 12px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .cap-input:focus { border-color: var(--accent); }
+
+  .btn-reset {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-reset:hover {
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+
+  /* OPERATION INPUT */
+  .op-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+
+  .op-tab {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+
+  .op-tab.active-get {
+    background: rgba(108, 99, 255, 0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .op-tab.active-put {
+    background: rgba(255, 101, 132, 0.15);
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+
+  .inputs-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .field-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .field-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .field-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    padding: 9px 12px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+
+  .field-input:focus { border-color: var(--accent); }
+  .field-input:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .btn-execute {
+    width: 100%;
+    padding: 11px;
+    border-radius: 6px;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+  }
+
+  .btn-execute.get-mode {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .btn-execute.put-mode {
+    background: var(--accent2);
+    color: #fff;
+  }
+
+  .btn-execute:hover { opacity: 0.85; transform: translateY(-1px); }
+  .btn-execute:active { transform: translateY(0); }
+
+  /* WORKLOAD */
+  .workload-textarea {
+    width: 100%;
+    height: 120px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 10px 12px;
+    outline: none;
+    resize: none;
+    line-height: 1.7;
+    transition: border-color 0.2s;
+  }
+
+  .workload-textarea:focus { border-color: var(--accent); }
+
+  .btn-run-workload {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--accent3);
+    background: rgba(67, 233, 123, 0.1);
+    color: var(--accent3);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-run-workload:hover {
+    background: rgba(67, 233, 123, 0.2);
+  }
+
+  /* LOG */
+  .log-section {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .log-section .panel-section {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .log-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-right: 4px;
+  }
+
+  .log-list::-webkit-scrollbar { width: 4px; }
+  .log-list::-webkit-scrollbar-track { background: transparent; }
+  .log-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 5px;
+    font-size: 11px;
+    background: var(--surface2);
+    border-left: 3px solid transparent;
+    animation: slideIn 0.25s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .log-entry.hit  { border-color: var(--hit);  }
+  .log-entry.miss { border-color: var(--miss); }
+  .log-entry.put  { border-color: var(--accent); }
+  .log-entry.evict { border-color: var(--evict); }
+
+  .log-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+
+  .badge-hit  { background: rgba(67,233,123,0.2); color: var(--hit); }
+  .badge-miss { background: rgba(255,101,132,0.2); color: var(--miss); }
+  .badge-put  { background: rgba(108,99,255,0.2); color: var(--accent); }
+  .badge-evict { background: rgba(247,151,30,0.2); color: var(--evict); }
+
+  .log-text { color: var(--text-dim); }
+  .log-val  { color: var(--text); font-weight: 600; }
+
+  /* RIGHT PANEL — CACHE VISUAL */
+  .right-panel {
+    padding: 32px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  /* CACHE SLOTS */
+  .cache-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .cache-header h2 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+  }
+
+  .mru-lru-labels {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .label-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+  }
+
+  .cache-rail {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    min-height: 110px;
+    position: relative;
+  }
+
+  .cache-slot {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-right: none;
+    background: var(--surface2);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: all 0.35s cubic-bezier(.4,0,.2,1);
+    overflow: hidden;
+  }
+
+  .cache-slot:first-child { border-radius: 10px 0 0 10px; }
+  .cache-slot:last-child  { border-radius: 0 10px 10px 0; border-right: 1px solid var(--border); }
+
+  .cache-slot.empty {
+    background: var(--bg);
+    opacity: 0.5;
+  }
+
+  .cache-slot.is-mru { border-top: 2px solid var(--mru); }
+  .cache-slot.is-lru { border-top: 2px solid var(--lru); }
+
+  .cache-slot.flash-hit {
+    animation: flashHit 0.6s ease;
+  }
+
+  .cache-slot.flash-evict {
+    animation: flashEvict 0.5s ease;
+  }
+
+  .cache-slot.flash-new {
+    animation: flashNew 0.5s ease;
+  }
+
+  @keyframes flashHit {
+    0%, 100% { background: var(--surface2); }
+    40% { background: rgba(67, 233, 123, 0.25); }
+  }
+
+  @keyframes flashEvict {
+    0% { background: rgba(247, 151, 30, 0.3); }
+    100% { background: var(--surface2); }
+  }
+
+  @keyframes flashNew {
+    0% { background: rgba(108, 99, 255, 0.3); transform: scaleY(0.9); }
+    100% { background: var(--surface2); transform: scaleY(1); }
+  }
+
+  .slot-pos {
+    position: absolute;
+    top: 6px;
+    left: 10px;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  .slot-tag {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 8px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .slot-tag.mru-tag { background: rgba(108,99,255,0.2); color: var(--mru); }
+  .slot-tag.lru-tag { background: rgba(255,101,132,0.2); color: var(--lru); }
+
+  .slot-key {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    text-align: center;
+    margin-top: 28px;
+    color: var(--text);
+    letter-spacing: -1px;
+  }
+
+  .slot-value {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  .slot-value span { color: var(--accent4); font-weight: 600; }
+
+  .cache-slot.empty .slot-key {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 300;
+    font-size: 20px;
+    color: var(--border);
+  }
+
+  /* EMPTY STATE */
+  .empty-rail {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 110px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    color: var(--text-dim);
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  /* DLL VISUALIZATION */
+  .dll-section h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+  }
+
+  .dll-rail {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .dll-rail::-webkit-scrollbar { height: 4px; }
+  .dll-rail::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .dll-node {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .dll-box {
+    width: 70px;
+    height: 60px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    gap: 2px;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+  }
+
+  .dll-box.sentinel {
+    background: var(--bg);
+    border-style: dashed;
+    color: var(--text-dim);
+    font-size: 9px;
+  }
+
+  .dll-box.is-mru-node { border-color: var(--mru); }
+  .dll-box.is-lru-node { border-color: var(--lru); }
+
+  .dll-key {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--text);
+  }
+
+  .dll-val {
+    font-size: 9px;
+    color: var(--text-dim);
+  }
+
+  .dll-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+
+  .arr-line {
+    width: 28px;
+    height: 1px;
+    position: relative;
+  }
+
+  .arr-fwd {
+    background: rgba(108,99,255,0.5);
+  }
+
+  .arr-bwd {
+    background: rgba(255,101,132,0.5);
+  }
+
+  .arr-fwd::after {
+    content: '▶';
+    position: absolute;
+    right: -6px;
+    top: -5px;
+    font-size: 8px;
+    color: rgba(108,99,255,0.8);
+  }
+
+  .arr-bwd::before {
+    content: '◀';
+    position: absolute;
+    left: -6px;
+    top: -5px;
+    font-size: 8px;
+    color: rgba(255,101,132,0.8);
+  }
+
+  /* HASHMAP VISUAL */
+  .hashmap-section h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+  }
+
+  .hashmap-grid {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .hm-bucket {
+    min-width: 80px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .hm-index {
+    background: var(--surface2);
+    padding: 4px 8px;
+    font-size: 9px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
+  .hm-entry {
+    padding: 6px 8px;
+    font-size: 10px;
+    color: var(--accent4);
+    text-align: center;
+    background: rgba(247,151,30,0.05);
+  }
+
+  .hm-empty {
+    padding: 6px 8px;
+    font-size: 10px;
+    color: var(--border);
+    text-align: center;
+  }
+
+  /* RESULT TOAST */
+  .result-toast {
+    position: fixed;
+    top: 100px;
+    right: 30px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s;
+    pointer-events: none;
+  }
+
+  .result-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .result-toast.hit-toast  { background: rgba(67,233,123,0.2); border: 1px solid var(--hit);  color: var(--hit); }
+  .result-toast.miss-toast { background: rgba(255,101,132,0.2); border: 1px solid var(--miss); color: var(--miss); }
+  .result-toast.put-toast  { background: rgba(108,99,255,0.2);  border: 1px solid var(--accent); color: var(--accent); }
+
+  /* COMPLEXITY TABLE */
+  .complexity-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .cplx-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+  }
+
+  .cplx-op {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .cplx-val {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--accent3);
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; grid-template-rows: auto; }
+    .left-panel { grid-row: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    .stats-bar { display: none; }
+    .right-panel { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">LRU</div>
+  <div class="header-text">
+    <h1>Cache Visualizer</h1>
+    <p>HashMap + Doubly Linked List · O(1) get / put</p>
+  </div>
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-val hit" id="stat-hits">0</div>
+      <div class="stat-label">Hits</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val miss" id="stat-misses">0</div>
+      <div class="stat-label">Misses</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val rate" id="stat-rate">—</div>
+      <div class="stat-label">Hit Rate</div>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+
+    <!-- CAPACITY -->
+    <div class="panel-section">
+      <div class="section-title">Cache Config</div>
+      <div class="capacity-control">
+        <label>Capacity</label>
+        <input class="cap-input" id="capacity-input" type="number" value="4" min="1" max="12">
+        <button class="btn-reset" onclick="resetCache()">Reset</button>
+      </div>
+    </div>
+
+    <!-- OPERATION -->
+    <div class="panel-section">
+      <div class="section-title">Operation</div>
+      <div class="op-tabs">
+        <button class="op-tab active-get" id="tab-get" onclick="setMode('GET')">GET</button>
+        <button class="op-tab" id="tab-put" onclick="setMode('PUT')">PUT</button>
+      </div>
+      <div class="inputs-row">
+        <div class="field-wrap">
+          <div class="field-label">Key (int)</div>
+          <input class="field-input" id="key-input" type="number" placeholder="e.g. 5" onkeydown="handleKeydown(event)">
+        </div>
+        <div class="field-wrap" id="value-wrap">
+          <div class="field-label">Value (int)</div>
+          <input class="field-input" id="value-input" type="number" placeholder="e.g. 50" disabled onkeydown="handleKeydown(event)">
+        </div>
+      </div>
+      <button class="btn-execute get-mode" id="btn-exec" onclick="executeOp()">Execute GET</button>
+    </div>
+
+    <!-- WORKLOAD -->
+    <div class="panel-section">
+      <div class="section-title">Workload Simulator</div>
+      <textarea class="workload-textarea" id="workload-input" placeholder="# Paste workload here&#10;PUT 1 10&#10;PUT 2 20&#10;GET 1&#10;PUT 3 30&#10;GET 2&#10;GET 3"></textarea>
+      <button class="btn-run-workload" onclick="runWorkload()">▶ Run Workload</button>
+    </div>
+
+    <!-- LOG -->
+    <div class="log-section">
+      <div class="panel-section" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+        <div class="section-title">Operation Log</div>
+        <div class="log-list" id="log-list"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+
+    <!-- CACHE SLOTS -->
+    <div>
+      <div class="cache-header">
+        <h2>Cache State</h2>
+        <div class="mru-lru-labels">
+          <span><span class="label-dot" style="background:var(--mru)"></span>MRU (Most Recent)</span>
+          <span><span class="label-dot" style="background:var(--lru)"></span>LRU (Evict Next)</span>
+        </div>
+      </div>
+      <div id="cache-visual"></div>
+    </div>
+
+    <!-- DLL -->
+    <div class="dll-section">
+      <h3>Doubly Linked List — MRU → LRU</h3>
+      <div class="dll-rail" id="dll-visual"></div>
+    </div>
+
+    <!-- HASHMAP -->
+    <div class="hashmap-section">
+      <h3>HashMap — Active Buckets</h3>
+      <div class="hashmap-grid" id="hashmap-visual"></div>
+    </div>
+
+    <!-- COMPLEXITY -->
+    <div>
+      <div class="dll-section">
+        <h3>Complexity</h3>
+      </div>
+      <div class="complexity-grid">
+        <div class="cplx-card">
+          <div class="cplx-op">get(key)</div>
+          <div class="cplx-val">O(1)</div>
+        </div>
+        <div class="cplx-card">
+          <div class="cplx-op">put(key, val)</div>
+          <div class="cplx-val">O(1)</div>
+        </div>
+        <div class="cplx-card">
+          <div class="cplx-op">Space</div>
+          <div class="cplx-val">O(cap)</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="result-toast" id="toast"></div>
+
+<script>
+// ─── DATA STRUCTURES ───────────────────────────────────────────────
+
+class Node {
+  constructor(key, value) {
+    this.key = key;
+    this.value = value;
+    this.prev = null;
+    this.next = null;
+  }
+}
+
+class DoublyLinkedList {
+  constructor() {
+    this.head = new Node(null, null); // sentinel
+    this.tail = new Node(null, null); // sentinel
+    this.head.next = this.tail;
+    this.tail.prev = this.head;
+  }
+
+  add_front(node) {
+    node.next = this.head.next;
+    node.prev = this.head;
+    this.head.next.prev = node;
+    this.head.next = node;
+  }
+
+  remove(node) {
+    node.prev.next = node.next;
+    node.next.prev = node.prev;
+  }
+
+  move_to_front(node) {
+    this.remove(node);
+    this.add_front(node);
+  }
+
+  pop_tail() {
+    const node = this.tail.prev;
+    if (node === this.head) return null;
+    this.remove(node);
+    return node;
+  }
+
+  to_list() {
+    const result = [];
+    let cur = this.head.next;
+    while (cur !== this.tail) {
+      result.push({ key: cur.key, value: cur.value });
+      cur = cur.next;
+    }
+    return result;
+  }
+}
+
+class HashMap {
+  constructor(cap = 100) {
+    this.capacity = cap;
+    this.table = Array.from({ length: cap }, () => []);
+    this.size = 0;
+    this.load_factor = 0.7;
+  }
+
+  _hash(key) { return ((key % this.capacity) + this.capacity) % this.capacity; }
+
+  get(key) {
+    const bucket = this.table[this._hash(key)];
+    for (const [k, v] of bucket) if (k === key) return v;
+    return null;
+  }
+
+  put(key, node) {
+    const idx = this._hash(key);
+    const bucket = this.table[idx];
+    for (let i = 0; i < bucket.length; i++) {
+      if (bucket[i][0] === key) { bucket[i][1] = node; return; }
+    }
+    bucket.push([key, node]);
+    this.size++;
+    if (this.size / this.capacity > this.load_factor) this._resize();
+  }
+
+  delete(key) {
+    const idx = this._hash(key);
+    const bucket = this.table[idx];
+    const i = bucket.findIndex(([k]) => k === key);
+    if (i !== -1) { bucket.splice(i, 1); this.size--; }
+  }
+
+  _resize() {
+    const old = this.table;
+    this.capacity *= 2;
+    this.table = Array.from({ length: this.capacity }, () => []);
+    this.size = 0;
+    for (const bucket of old) for (const [k, n] of bucket) this.put(k, n);
+  }
+
+  active_entries() {
+    const result = [];
+    for (let i = 0; i < this.capacity; i++) {
+      if (this.table[i].length > 0) {
+        for (const [k, n] of this.table[i]) result.push({ index: i, key: k, value: n.value });
+      }
+    }
+    return result;
+  }
+}
+
+class LRUCache {
+  constructor(capacity) {
+    this.capacity = capacity;
+    this.map = new HashMap();
+    this.list = new DoublyLinkedList();
+    this.size = 0;
+  }
+
+  get(key) {
+    const node = this.map.get(key);
+    if (!node) return -1;
+    this.list.move_to_front(node);
+    return node.value;
+  }
+
+  put(key, value) {
+    if (this.capacity === 0) return { evicted: null, updated: false };
+    const node = this.map.get(key);
+    if (node) {
+      node.value = value;
+      this.list.move_to_front(node);
+      return { evicted: null, updated: true };
+    }
+    let evicted = null;
+    if (this.size === this.capacity) {
+      const lru = this.list.pop_tail();
+      if (lru) { this.map.delete(lru.key); this.size--; evicted = lru.key; }
+    }
+    const newNode = new Node(key, value);
+    this.list.add_front(newNode);
+    this.map.put(key, newNode);
+    this.size++;
+    return { evicted, updated: false };
+  }
+
+  items() { return this.list.to_list(); }
+}
+
+// ─── STATE ────────────────────────────────────────────────────────
+
+let cache = new LRUCache(4);
+let mode = 'GET';
+let hits = 0, misses = 0, totalGets = 0;
+let pendingFlash = {}; // key -> class
+
+// ─── RENDER ──────────────────────────────────────────────────────
+
+function render(flashInfo = {}) {
+  const items = cache.items();
+  const cap = cache.capacity;
+  renderCacheSlots(items, cap, flashInfo);
+  renderDLL(items);
+  renderHashmap();
+}
+
+function renderCacheSlots(items, cap, flashInfo) {
+  const el = document.getElementById('cache-visual');
+
+  if (cap === 0) {
+    el.innerHTML = '<div class="empty-rail">Capacity is 0 — cache disabled</div>';
+    return;
+  }
+
+  // Build slots array: filled + empty
+  const slots = [];
+  for (let i = 0; i < cap; i++) {
+    slots.push(i < items.length ? items[i] : null);
+  }
+
+  let html = '<div class="cache-rail">';
+  slots.forEach((item, i) => {
+    const isMRU = i === 0 && item;
+    const isLRU = i === items.length - 1 && item && items.length > 1;
+    const flashClass = item && flashInfo[item.key] ? flashInfo[item.key] : '';
+
+    if (!item) {
+      html += `
+        <div class="cache-slot empty">
+          <div class="slot-pos">#${i + 1}</div>
+          <div class="slot-key">—</div>
+        </div>`;
+    } else {
+      html += `
+        <div class="cache-slot ${isMRU ? 'is-mru' : ''} ${isLRU ? 'is-lru' : ''} ${flashClass}" id="slot-${item.key}">
+          <div class="slot-pos">#${i + 1}</div>
+          ${isMRU ? '<div class="slot-tag mru-tag">MRU</div>' : ''}
+          ${isLRU ? '<div class="slot-tag lru-tag">LRU</div>' : ''}
+          <div class="slot-key">${item.key}</div>
+          <div class="slot-value">val = <span>${item.value}</span></div>
+        </div>`;
+    }
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderDLL(items) {
+  const el = document.getElementById('dll-visual');
+  let html = '';
+
+  // HEAD sentinel
+  html += `<div class="dll-node">
+    <div class="dll-box sentinel"><span>HEAD</span><span style="font-size:8px">sentinel</span></div>
+  </div>`;
+
+  items.forEach((item, i) => {
+    const isMRU = i === 0;
+    const isLRU = i === items.length - 1 && items.length > 1;
+    html += `
+      <div class="dll-node">
+        <div class="dll-arrow">
+          <div class="arr-line arr-fwd"></div>
+          <div class="arr-line arr-bwd"></div>
+        </div>
+        <div class="dll-box ${isMRU ? 'is-mru-node' : ''} ${isLRU ? 'is-lru-node' : ''}">
+          <div class="dll-key">${item.key}</div>
+          <div class="dll-val">val=${item.value}</div>
+        </div>
+      </div>`;
+  });
+
+  // TAIL sentinel
+  html += `
+    <div class="dll-node">
+      <div class="dll-arrow">
+        <div class="arr-line arr-fwd"></div>
+        <div class="arr-line arr-bwd"></div>
+      </div>
+      <div class="dll-box sentinel"><span>TAIL</span><span style="font-size:8px">sentinel</span></div>
+    </div>`;
+
+  el.innerHTML = html;
+}
+
+function renderHashmap() {
+  const el = document.getElementById('hashmap-visual');
+  const entries = cache.map.active_entries();
+
+  if (entries.length === 0) {
+    el.innerHTML = '<div style="color:var(--text-dim);font-size:12px;">Empty — no keys cached</div>';
+    return;
+  }
+
+  // Group by index
+  const byIndex = {};
+  for (const e of entries) {
+    if (!byIndex[e.index]) byIndex[e.index] = [];
+    byIndex[e.index].push(e);
+  }
+
+  let html = '';
+  for (const [idx, ents] of Object.entries(byIndex)) {
+    html += `<div class="hm-bucket">
+      <div class="hm-index">bucket [${idx}]</div>`;
+    for (const e of ents) {
+      html += `<div class="hm-entry">${e.key} → ${e.value}</div>`;
+    }
+    html += `</div>`;
+  }
+  el.innerHTML = html;
+}
+
+// ─── OPERATIONS ──────────────────────────────────────────────────
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('tab-get').className = 'op-tab' + (m === 'GET' ? ' active-get' : '');
+  document.getElementById('tab-put').className = 'op-tab' + (m === 'PUT' ? ' active-put' : '');
+  document.getElementById('value-input').disabled = m === 'GET';
+  document.getElementById('btn-exec').className = `btn-execute ${m === 'GET' ? 'get-mode' : 'put-mode'}`;
+  document.getElementById('btn-exec').textContent = `Execute ${m}`;
+}
+
+function handleKeydown(e) {
+  if (e.key === 'Enter') executeOp();
+}
+
+function executeOp() {
+  const key = parseInt(document.getElementById('key-input').value);
+  if (isNaN(key)) { showToast('Enter a valid key', 'put-toast'); return; }
+
+  if (mode === 'GET') {
+    totalGets++;
+    const result = cache.get(key);
+    const isHit = result !== -1;
+    if (isHit) { hits++; addLog('hit', `GET ${key}`, `→ ${result}`); showToast(`GET(${key}) = ${result} ✓ HIT`, 'hit-toast'); render({ [key]: 'flash-hit' }); }
+    else        { misses++; addLog('miss', `GET ${key}`, `→ -1 (miss)`); showToast(`GET(${key}) = -1 ✗ MISS`, 'miss-toast'); render({}); }
+    updateStats();
+  } else {
+    const value = parseInt(document.getElementById('value-input').value);
+    if (isNaN(value)) { showToast('Enter a valid value', 'put-toast'); return; }
+    const { evicted, updated } = cache.put(key, value);
+    if (evicted !== null) {
+      addLog('evict', `PUT ${key} ${value}`, `evicted key ${evicted}`);
+      showToast(`PUT(${key}, ${value}) — evicted key ${evicted}`, 'put-toast');
+      render({ [key]: 'flash-new' });
+    } else if (updated) {
+      addLog('put', `PUT ${key} ${value}`, `updated`);
+      showToast(`PUT(${key}, ${value}) — updated`, 'put-toast');
+      render({ [key]: 'flash-hit' });
+    } else {
+      addLog('put', `PUT ${key} ${value}`, `inserted`);
+      showToast(`PUT(${key}, ${value}) — inserted`, 'put-toast');
+      render({ [key]: 'flash-new' });
+    }
+  }
+
+  document.getElementById('key-input').value = '';
+  document.getElementById('value-input').value = '';
+  document.getElementById('key-input').focus();
+}
+
+function resetCache() {
+  const cap = parseInt(document.getElementById('capacity-input').value) || 4;
+  cache = new LRUCache(Math.max(1, Math.min(12, cap)));
+  hits = 0; misses = 0; totalGets = 0;
+  updateStats();
+  document.getElementById('log-list').innerHTML = '';
+  render({});
+  showToast(`Cache reset · capacity = ${cache.capacity}`, 'put-toast');
+}
+
+document.getElementById('capacity-input').addEventListener('change', resetCache);
+
+function runWorkload() {
+  const text = document.getElementById('workload-input').value;
+  const lines = text.split('\n');
+  let ops = 0;
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const parts = line.split(/\s+/);
+    const op = parts[0].toUpperCase();
+
+    if (op === 'GET' && parts.length === 2) {
+      const key = parseInt(parts[1]);
+      if (!isNaN(key)) {
+        totalGets++;
+        const result = cache.get(key);
+        if (result !== -1) { hits++; addLog('hit', `GET ${key}`, `→ ${result}`); }
+        else                { misses++; addLog('miss', `GET ${key}`, `→ -1`); }
+        ops++;
+      }
+    } else if (op === 'PUT' && parts.length === 3) {
+      const key = parseInt(parts[1]), value = parseInt(parts[2]);
+      if (!isNaN(key) && !isNaN(value)) {
+        const { evicted } = cache.put(key, value);
+        if (evicted !== null) addLog('evict', `PUT ${key} ${value}`, `evicted ${evicted}`);
+        else                  addLog('put', `PUT ${key} ${value}`, `ok`);
+        ops++;
+      }
+    }
+  }
+
+  updateStats();
+  render({});
+  showToast(`Workload done: ${ops} ops`, 'hit-toast');
+}
+
+// ─── UI HELPERS ───────────────────────────────────────────────────
+
+function addLog(type, op, detail) {
+  const list = document.getElementById('log-list');
+  const el = document.createElement('div');
+  el.className = `log-entry ${type}`;
+  const badgeMap = { hit: 'badge-hit', miss: 'badge-miss', put: 'badge-put', evict: 'badge-evict' };
+  const labelMap = { hit: 'HIT', miss: 'MISS', put: 'PUT', evict: 'EVICT' };
+  el.innerHTML = `
+    <span class="log-badge ${badgeMap[type]}">${labelMap[type]}</span>
+    <span class="log-text">${op}</span>
+    <span class="log-val">${detail}</span>
+  `;
+  list.prepend(el);
+  // Keep max 80 entries
+  while (list.children.length > 80) list.removeChild(list.lastChild);
+}
+
+function updateStats() {
+  document.getElementById('stat-hits').textContent = hits;
+  document.getElementById('stat-misses').textContent = misses;
+  const rate = totalGets > 0 ? ((hits / totalGets) * 100).toFixed(1) + '%' : '—';
+  document.getElementById('stat-rate').textContent = rate;
+}
+
+let toastTimer;
+function showToast(msg, cls) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `result-toast ${cls} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2000);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────
+render({});
+setMode('GET');
+
+// Pre-load a small example
+cache.put(1, 10); addLog('put', 'PUT 1 10', 'inserted');
+cache.put(2, 20); addLog('put', 'PUT 2 20', 'inserted');
+cache.put(3, 30); addLog('put', 'PUT 3 30', 'inserted');
+render({});
+</script>
+</body>
+</html>
