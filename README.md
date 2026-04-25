@@ -86,3 +86,22 @@ PYTHONPATH=src python -m lru_cache.simulator --capacity 3 --workload data/sample
 - Manual trace (by hand): `docs/manual_trace.md`
 - Complexity analysis: `docs/complexity.md`
 ```
+
+## Web Visualization
+
+This repository also includes a **web-based visualizer** that demonstrates how an LRU cache works step-by-step.
+
+It shows:
+- Cache state (MRU → LRU)
+- Doubly Linked List view (MRU → LRU)
+- HashMap buckets (active entries)
+- Operation log + hit/miss statistics
+- Workload runner (paste multiple GET/PUT operations)
+
+### Run the visualizer
+
+If the file is located at `web/index.html`, you can run it with a simple local server:
+
+```bash
+cd web
+python3 -m http.server 8000
