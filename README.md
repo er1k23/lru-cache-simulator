@@ -1,107 +1,84 @@
-# LRU Cache (From Scratch) + Workload Simulator (Python)
+# LRU Cache Simulator
 
-An **LRU (Least Recently Used) cache** evicts the item that hasn’t been accessed for the longest time when the cache reaches its capacity.  
-This project implements an LRU cache **from scratch** in Python and simulates it on a workload of `GET` / `PUT` operations.
+A clean, from-scratch implementation of an **LRU (Least Recently Used) Cache** with a built-in workload simulator and a simple web-based visualization.
+
+## Overview
+
+This project demonstrates how an LRU cache achieves **O(1)** time complexity for both `get` and `put` operations by combining a doubly linked list (to maintain usage order) and a hash map (to enable fast key lookup). The system also includes a simulator to run realistic workloads and measure cache performance.
 
 ## Features
 
-- ✅ **LRU Cache** with `get(key)` and `put(key, value)`
-- ✅ **O(1)** average-time operations using:
-  - **Custom HashMap** (no built-in `dict`)
-  - **Custom Doubly Linked List** (move-to-front + tail eviction)
-- ✅ Configurable **capacity**
-- ✅ Workload simulation from a file (sequence of `GET` / `PUT`)
-- ✅ Simulation report:
-  - total gets, hits, misses, hit rate (%)
-  - final cache contents (MRU → LRU)
-- ✅ Edge cases covered:
-  - capacity = 1
-  - all gets on empty cache
-  - repeated puts with the same key (update + move to MRU)
-- ✅ Correctness verification via tests + manual trace
-
-## Data Structures
-
-**HashMap:** `key -> node reference` for O(1) lookup  
-**Doubly Linked List:** keeps usage order  
-- **Head** = MRU (most recently used)  
-- **Tail** = LRU (least recently used)
-
-On every `get` / `put`, the key becomes **MRU** (moved to head).  
-On overflow, the cache evicts **LRU** (tail node).
-
-## Complexity (Summary)
-
-- `get(key)` → **O(1)** average
-- `put(key, value)` → **O(1)** average  
-- Space → **O(capacity)**
-
-Full explanation: see `docs/complexity.md`.
+- LRU cache implemented from scratch (no built-in map/queue)
+- `get(key)` — returns value or `-1` and updates recency
+- `put(key, value)` — inserts/updates and handles eviction
+- Configurable cache capacity
+- Workload simulation from input files
+- Performance metrics: total operations, cache hits/misses, and hit rate (%)
+- Unit tests for validation
+- Simple HTML visualization of cache behavior
 
 ## Project Structure
 
-```text
-src/lru_cache/
-  __init__.py
-  doubly_linked_list.py
-  hashmap.py
-  lru_cache.py
-  simulator.py
-
-tests/
-  test_lru_cache.py
-  test_simulator.py
-
-data/
-  sample_workload.txt
-
-docs/
-  manual_trace.md
-  complexity.md 
+```
+├── data/           # Workload input files
+├── docs/           # Complexity notes and explanations
+├── src/
+│   └── lru_cache/
+│       ├── doubly_linked_list.py
+│       ├── hashmap.py
+│       ├── lru_cache.py
+│       └── simulator.py
+├── tests/          # Unit tests
+└── web/            # HTML visualizer
 ```
 
-## Setup
+## How It Works
+
+The cache internally maintains:
+
+- **HashMap** — maps `key → node`
+- **Doubly Linked List** — head is most recently used, tail is least recently used
+
+**`get(key)`** looks up the key in the hashmap and moves the node to the front.
+
+**`put(key, value)`** updates the node if the key exists, otherwise inserts a new one. If the cache is full, the tail (LRU node) is evicted first.
+
+This guarantees O(1) time complexity for all operations.
+
+## Usage
+
+### Run the Simulator
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -U pip
-pip install pytest
+python -m src.lru_cache.simulator data/sample_workload.txt
 ```
 
-## Run tests
+Other available workload files:
+
+- `data/empty_workload.txt`
+- `data/manual_trace.txt`
+
+### Web Visualization
+
+Open `web/lru_cache_visualizer.html` in a browser for a visual representation of cache state and operations.
+
+### Run Tests
 
 ```bash
-PYTHONPATH=src pytest -q
+pytest tests/
 ```
 
-## Run simulator
+Test coverage includes hashmap correctness, linked list behavior, LRU cache logic, and simulator output.
 
-```bash
-PYTHONPATH=src python -m lru_cache.simulator --capacity 3 --workload data/sample_workload.txt
-```
+## Complexity
 
-## Required write-ups
+| Operation | Time Complexity |
+|-----------|----------------|
+| `get`     | O(1)           |
+| `put`     | O(1)           |
 
-- Manual trace (by hand): `docs/manual_trace.md`
-- Complexity analysis: `docs/complexity.md`
-```
+## Notes
 
-## Web Visualization
-
-This repository also includes a **web-based visualizer** that demonstrates how an LRU cache works step-by-step.
-
-It shows:
-- Cache state (MRU → LRU)
-- Doubly Linked List view (MRU → LRU)
-- HashMap buckets (active entries)
-- Operation log + hit/miss statistics
-- Workload runner (paste multiple GET/PUT operations)
-
-### Run the visualizer
-
-If the file is located at `web/index.html`, you can run it with a simple local server:
-
-```bash
-cd web
-python3 -m http.server 8000
+- Designed for learning and clarity
+- Emphasizes understanding of data structure interaction
+- Can be extended (e.g., LFU cache, performance graphs)
